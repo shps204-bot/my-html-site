@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>小精靈賽道遊戲</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, "Microsoft JhengHei", sans-serif;
+      background: linear-gradient(180deg, #f9fbff 0%, #eef4ff 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+    .wrap {
+      width: min(96vw, 440px);
+      text-align: center;
+    }
+    h1 {
+      margin: 0 0 10px;
+      color: #222;
+      font-size: 28px;
+    }
+    p {
+      margin: 8px 0 14px;
+      color: #333;
+    }
+    canvas {
+      width: 100%;
+      aspect-ratio: 9 / 16;
+      height: auto;
+      background: #fff;
+      border: 4px solid #222;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      display: block;
+      touch-action: manipulation;
+    }
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 12px 0;
+      color: #111;
+      font-weight: bold;
+      flex-wrap: wrap;
+    }
+    .card {
+      background: rgba(255,255,255,0.9);
+      padding: 8px 12px;
+      border-radius: 999px;
+      min-width: 92px;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+    .player-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin: 10px 0 0;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .player-row label {
+      font-size: 14px;
+      color: #333;
+      font-weight: bold;
+    }
+    .player-row input {
+      border: 1px solid rgba(0,0,0,0.16);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 14px;
+      min-width: 180px;
+      outline: none;
+      background: rgba(255,255,255,0.95);
+    }
+    .btns {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    button {
+      border: none;
+      background: #111;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    button:hover { opacity: 0.92; }
+    .note {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #222;
+      background: rgba(255,255,255,0.72);
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 12px;
+    }
+    .leaderboard {
+      margin-top: 18px;
+      padding: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,255,0.94));
+      border-radius: 22px;
+      border: 1px solid rgba(0,0,0,0.08);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.08);
+      text-align: left;
+      position: relative;
+      overflow: hidden;
+    }
+    .leaderboard::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top right, rgba(255,214,120,0.22), transparent 28%), radial-gradient(circle at bottom left, rgba(255,155,200,0.16), transparent 30%);
+      pointer-events: none;
+    }
+    .leaderboard h2 {
+      margin: 0 0 12px;
+      font-size: 22px;
+      color: #222;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+    .leaderboard-summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+      position: relative;
+      z-index: 1;
+    }
+    .summary-card {
+      background: rgba(255,255,255,0.82);
+      border: 1px solid rgba(0,0,0,0.06);
+      border-radius: 14px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+    .summary-card .label {
+      display: block;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    .summary-card .value {
+      display: block;
+      font-size: 18px;
+      font-weight: bold;
+      color: #111;
+    }
+    .result-panel {
+      margin-top: 12px;
+      padding: 14px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,243,247,0.86));
+      border: 1px solid rgba(0,0,0,0.06);
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+    .result-panel .title {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 6px;
+    }
+    .result-panel .score-big {
+      font-size: 30px;
+      font-weight: bold;
+      color: #111;
+      line-height: 1.1;
+    }
+    .result-panel .sub {
+      font-size: 13px;
+      color: #777;
+      margin-top: 6px;
+    }
+    .leaderboard ol {
+      margin: 14px 0 0;
+      padding-left: 0;
+      list-style: none;
+      position: relative;
+      z-index: 1;
+    }
+    .leaderboard li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      color: #333;
+      border: 1px solid rgba(0,0,0,0.06);
+      background: rgba(255,255,255,0.78);
+      border-radius: 14px;
+      margin-bottom: 8px;
+    }
+    .leaderboard li:last-child { margin-bottom: 0; }
+    .leaderboard .left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .leaderboard .medal {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: bold;
+      color: #222;
+      flex-shrink: 0;
+      box-shadow: inset 0 1px 2px rgba(255,255,255,0.45);
+    }
+    .leaderboard .gold { background: linear-gradient(180deg, #ffe999, #f4c542); }
+    .leaderboard .silver { background: linear-gradient(180deg, #f2f3f7, #c9ced8); }
+    .leaderboard .bronze { background: linear-gradient(180deg, #efc3a1, #c78557); }
+    .leaderboard .rank { background: #eef1f7; }
+    .leaderboard .name {
+      font-weight: bold;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 120px;
+    }
+    .leaderboard .meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      font-size: 12px;
+      color: #666;
+      flex-shrink: 0;
+    }
+    .leaderboard .score {
+      font-size: 15px;
+      color: #111;
+      font-weight: bold;
+    }
+    .leaderboard .empty {
+      text-align: center;
+      color: #777;
+      padding: 10px 0 4px;
+      list-style: none;
+      background: rgba(255,255,255,0.72);
+      border-radius: 14px;
+      border: 1px dashed rgba(0,0,0,0.1);
+    }
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.45);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.28s ease;
+      z-index: 20;
+      padding: 16px;
+    }
+    .modal.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-card {
+      width: min(92vw, 360px);
+      background: #fff;
+      border-radius: 22px;
+      padding: 20px 18px;
+      box-shadow: 0 18px 44px rgba(0,0,0,0.24);
+      transform: translateY(16px) scale(0.96);
+      transition: transform 0.28s ease;
+      text-align: center;
+    }
+    .modal.show .modal-card {
+      transform: translateY(0) scale(1);
+    }
+    .modal-card h3 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      color: #222;
+    }
+    .modal-card p { margin: 6px 0; }
+    .modal-rank {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      margin: 10px auto 8px;
+      font-size: 22px;
+      font-weight: bold;
+      color: #222;
+      background: linear-gradient(180deg, #ffe999, #f4c542);
+    }
+    .modal-rank.silver { background: linear-gradient(180deg, #f2f3f7, #c9ced8); }
+    .modal-rank.bronze { background: linear-gradient(180deg, #efc3a1, #c78557); }
+    .modal-rank.rank { background: #eef1f7; }
+    .modal-actions { margin-top: 14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>👾 小精靈賽道遊戲</h1>
+    <p>用 ← → 或 A D 移動粉色小精靈，閃避雲朵、拼豆板，吃到星星可加分。</p>
+
+    <div class="hud">
+      <div class="card">分數：<span id="score">0</span></div>
+      <div class="card">最高分：<span id="best">0</span></div>
+      <div class="card">速度：<span id="speed">1</span></div>
+      <div class="card">Combo：<span id="combo">0</span></div>
+    </div>
+
+    <div class="player-row">
+      <label for="playerName">玩家名字</label>
+      <input id="playerName" type="text" maxlength="12" placeholder="輸入名字後再開始" />
+    </div>
+
+    <canvas id="game" width="360" height="640"></canvas>
+
+    <div class="btns">
+      <button id="startBtn">開始 / 重新開始</button>
+    </div>
+    <div class="note">手機也可玩：點畫面左半邊往左、右半邊往右。</div>
+
+    <div class="leaderboard">
+      <h2>🏆 遊戲結算</h2>
+      <div class="leaderboard-summary">
+        <div class="summary-card">
+          <span class="label">本次分數</span>
+          <span class="value" id="summaryScore">0</span>
+        </div>
+        <div class="summary-card">
+          <span class="label">最高分</span>
+          <span class="value" id="summaryBest">0</span>
+        </div>
+        <div class="summary-card">
+          <span class="label">最高 Combo</span>
+          <span class="value" id="summaryCombo">0</span>
+        </div>
+      </div>
+      <div class="result-panel">
+        <div class="title">本次挑戰結果</div>
+        <div class="score-big" id="resultBigScore">0 分</div>
+        <div class="sub" id="resultSubText">按下開始，挑戰排行榜第一名</div>
+      </div>
+      <h2 style="margin-top:16px;">排行榜</h2>
+      <div id="onlineStatus" style="position:relative;z-index:1;text-align:center;font-size:12px;color:#666;margin:-2px 0 10px;">目前使用本機排行榜</div>
+      <ol id="leaderboardList"></ol>
+    </div>
+  </div>
+
+  <div class="modal" id="rankModal">
+    <div class="modal-card">
+      <div class="modal-rank" id="modalRankBadge">#1</div>
+      <h3>恭喜上榜！</h3>
+      <p id="modalRankText">你進入排行榜了</p>
+      <p id="modalScoreText">本次分數：0</p>
+      <div class="modal-actions">
+        <button id="closeModalBtn">知道了</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.0.0/firebase-database-compat.js"></script>
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const bestEl = document.getElementById('best');
+    const speedEl = document.getElementById('speed');
+    const comboEl = document.getElementById('combo');
+    const startBtn = document.getElementById('startBtn');
+    const leaderboardList = document.getElementById('leaderboardList');
+    const playerNameInput = document.getElementById('playerName');
+    const rankModal = document.getElementById('rankModal');
+    const modalRankBadge = document.getElementById('modalRankBadge');
+    const modalRankText = document.getElementById('modalRankText');
+    const modalScoreText = document.getElementById('modalScoreText');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const summaryScoreEl = document.getElementById('summaryScore');
+    const summaryBestEl = document.getElementById('summaryBest');
+    const summaryComboEl = document.getElementById('summaryCombo');
+    const resultBigScoreEl = document.getElementById('resultBigScore');
+    const resultSubTextEl = document.getElementById('resultSubText');
+    const onlineStatusEl = document.getElementById('onlineStatus');
+
+    const road = { x: 70, width: 220, laneCount: 3, lineOffset: 0 };
+    const player = { width: 64, height: 72, x: 0, y: canvas.height - 120, speed: 6 };
+
+    let obstacles = [];
+    let sparkles = [];
+    let score = 0;
+    let speedLevel = 1;
+    let gameSpeed = 4;
+    let animationId = null;
+    let playing = false;
+    let spawnTimer = 0;
+    let leftPressed = false;
+    let rightPressed = false;
+    let combo = 0;
+    let comboTimer = 0;
+    let maxComboThisRun = 0;
+    let audioCtx = null;
+    let bgmStarted = false;
+    let bestScore = Number(localStorage.getItem('racing_best') || 0);
+    let leaderboard = JSON.parse(localStorage.getItem('racing_leaderboard') || '[]');
+    let currentPlayerName = localStorage.getItem('racing_player_name') || '';
+    let onlineMode = false;
+    let db = null;
+    let scoresRef = null;
+
+    const FIREBASE_CONFIG = {
+      apiKey: 'AIzaSyB-ZIRs1l_622LVpbqU7VZhwmz9bv-yur0',
+      authDomain: 'mard888.firebaseapp.com',
+      databaseURL: 'https://mard888-default-rtdb.asia-southeast1.firebasedatabase.app',
+      projectId: 'mard888',
+      storageBucket: 'mard888.firebasestorage.app',
+      messagingSenderId: '214307608767',
+      appId: '1:214307608767:web:d0da08ad28f929961a0e0a',
+      measurementId: 'G-N022C89YS4'
+    };
+
+    function resetGame() {
+      player.x = road.x + road.width / 2 - player.width / 2;
+      obstacles = [];
+      sparkles = [];
+      score = 0;
+      combo = 0;
+      comboTimer = 0;
+      maxComboThisRun = 0;
+      speedLevel = 1;
+      gameSpeed = 4;
+      spawnTimer = 0;
+      road.lineOffset = 0;
+      updateHud();
+    }
+
+    function updateHud() {
+      scoreEl.textContent = String(score);
+      bestEl.textContent = String(bestScore);
+      speedEl.textContent = String(speedLevel);
+      comboEl.textContent = String(combo);
+      summaryScoreEl.textContent = String(score);
+      summaryBestEl.textContent = String(bestScore);
+      summaryComboEl.textContent = String(maxComboThisRun);
+      resultBigScoreEl.textContent = `${score} 分`;
+    }
+
+    function updateResultPanel(text) {
+      resultSubTextEl.textContent = text;
+    }
+
+    function saveLeaderboard() {
+      localStorage.setItem('racing_leaderboard', JSON.stringify(leaderboard));
+    }
+
+    function hasFirebaseConfig() {
+      return Boolean(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId && FIREBASE_CONFIG.databaseURL);
+    }
+
+    function setOnlineStatus(text, isOnline) {
+      if (!onlineStatusEl) return;
+      onlineStatusEl.textContent = text;
+      onlineStatusEl.style.color = isOnline ? '#16803c' : '#666';
+    }
+
+    function initRealtimeLeaderboard() {
+      if (!hasFirebaseConfig() || typeof firebase === 'undefined') {
+        setOnlineStatus('目前使用本機排行榜', false);
+        onlineMode = false;
+        return;
+      }
+      try {
+        if (!firebase.apps.length) {
+          firebase.initializeApp(FIREBASE_CONFIG);
+        }
+        db = firebase.database();
+        scoresRef = db.ref('racing_leaderboard');
+        scoresRef.limitToLast(20).on('value', (snapshot) => {
+          const rows = [];
+          snapshot.forEach((child) => {
+            const value = child.val();
+            if (value && typeof value.score === 'number') {
+              rows.push({
+                name: value.name || '玩家',
+                score: value.score,
+                combo: value.combo || 0,
+                time: value.time || ''
+              });
+            }
+          });
+          rows.sort((a, b) => b.score - a.score || b.combo - a.combo);
+          leaderboard = rows.slice(0, 5);
+          renderLeaderboard();
+        }, () => {
+          onlineMode = false;
+          setOnlineStatus('即時連線失敗，已切回本機排行榜', false);
+          leaderboard = JSON.parse(localStorage.getItem('racing_leaderboard') || '[]');
+          renderLeaderboard();
+        });
+        onlineMode = true;
+        setOnlineStatus('即時連線排行榜已啟用', true);
+      } catch (error) {
+        console.error('Firebase 初始化失敗', error);
+        onlineMode = false;
+        setOnlineStatus('Firebase 初始化失敗，已切回本機排行榜', false);
+      }
+    }
+
+    function pushOnlineScore(entry) {
+      if (!onlineMode || !scoresRef) return;
+      scoresRef.push(entry).catch((error) => {
+        console.error('上傳排行榜失敗', error);
+      });
+    }
+
+    function getRankClass(index) {
+      if (index === 0) return 'gold';
+      if (index === 1) return 'silver';
+      if (index === 2) return 'bronze';
+      return 'rank';
+    }
+
+    function getRankLabel(index) {
+      if (index === 0) return '🥇';
+      if (index === 1) return '🥈';
+      if (index === 2) return '🥉';
+      return `#${index + 1}`;
+    }
+
+    function renderLeaderboard() {
+      leaderboardList.innerHTML = '';
+      if (!leaderboard.length) {
+        const li = document.createElement('li');
+        li.className = 'empty';
+        li.textContent = '還沒有紀錄，快來挑戰第一名';
+        leaderboardList.appendChild(li);
+        return;
+      }
+      leaderboard.forEach((item, index) => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <div class="left">
+            <span class="medal ${getRankClass(index)}">${getRankLabel(index)}</span>
+            <span class="name">${item.name || '玩家'}</span>
+          </div>
+          <div class="meta">
+            <span class="score">${item.score} 分</span>
+            <span>${item.time}</span>
+          </div>
+        `;
+        leaderboardList.appendChild(li);
+      });
+    }
+
+    function showRankModal(rank, name, newScore) {
+      modalRankBadge.className = `modal-rank ${getRankClass(rank - 1)}`;
+      modalRankBadge.textContent = getRankLabel(rank - 1);
+      modalRankText.textContent = `${name} 目前排名第 ${rank} 名`;
+      modalScoreText.textContent = `本次分數：${newScore}`;
+      rankModal.classList.add('show');
+    }
+
+    function hideRankModal() {
+      rankModal.classList.remove('show');
+    }
+
+    function updateLeaderboard(newScore) {
+      const entryName = (playerNameInput.value || currentPlayerName || '玩家').trim().slice(0, 12) || '玩家';
+      currentPlayerName = entryName;
+      localStorage.setItem('racing_player_name', currentPlayerName);
+
+      const entry = {
+        name: entryName,
+        score: newScore,
+        combo: maxComboThisRun,
+        time: new Date().toLocaleString('zh-Hant-TW', {
+          hour12: false,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      };
+
+      if (onlineMode) {
+        pushOnlineScore(entry);
+        updateResultPanel('成績已送出，等待即時排行榜同步中…');
+        setTimeout(() => {
+          const rankIndexOnline = leaderboard.findIndex((item) => item.name === entry.name && item.score === entry.score && item.combo === entry.combo);
+          if (rankIndexOnline !== -1) {
+            updateResultPanel(`恭喜獲得第 ${rankIndexOnline + 1} 名，繼續挑戰更高分！`);
+            showRankModal(rankIndexOnline + 1, entry.name, entry.score);
+          }
+        }, 700);
+        return;
+      }
+
+      leaderboard.push(entry);
+      leaderboard.sort((a, b) => b.score - a.score);
+      leaderboard = leaderboard.slice(0, 5);
+      saveLeaderboard();
+      renderLeaderboard();
+
+      const rankIndex = leaderboard.findIndex((item) => item.name === entry.name && item.score === entry.score && item.combo === entry.combo);
+      if (rankIndex !== -1) {
+        updateResultPanel(`恭喜獲得第 ${rankIndex + 1} 名，繼續挑戰更高分！`);
+        showRankModal(rankIndex + 1, entry.name, entry.score);
+      } else {
+        updateResultPanel('本次未進榜，再試一次突破紀錄！');
+      }
+    }
+
+    function laneX(laneIndex, itemWidth) {
+      const laneWidth = road.width / road.laneCount;
+      return road.x + laneIndex * laneWidth + (laneWidth - itemWidth) / 2;
+    }
+
+    function randomObstacle() {
+      const lane = Math.floor(Math.random() * road.laneCount);
+      const roll = Math.random();
+      const type = roll < 0.24 ? 'star' : (roll < 0.62 ? 'cloud' : 'pegboard');
+      const config = {
+        cloud: { width: 58, height: 38 },
+        star: { width: 48, height: 48 },
+        pegboard: { width: 54, height: 70 }
+      };
+      return {
+        type,
+        width: config[type].width,
+        height: config[type].height,
+        x: laneX(lane, config[type].width),
+        y: -config[type].height - 20
+      };
+    }
+
+    function drawBackground() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      skyGrad.addColorStop(0, '#f9fbff');
+      skyGrad.addColorStop(1, '#eef4ff');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      drawPegboardArea(0, 0, road.x, canvas.height);
+      drawPegboardArea(road.x + road.width, 0, canvas.width - (road.x + road.width), canvas.height);
+
+      ctx.fillStyle = '#ffe6ea';
+      ctx.fillRect(road.x, 0, road.width, canvas.height);
+      ctx.fillStyle = '#ffb7c5';
+      ctx.fillRect(road.x, 0, 8, canvas.height);
+      ctx.fillRect(road.x + road.width - 8, 0, 8, canvas.height);
+
+      const laneWidth = road.width / road.laneCount;
+      road.lineOffset += gameSpeed;
+      for (let lane = 1; lane < road.laneCount; lane += 1) {
+        const lx = road.x + lane * laneWidth - 3;
+        for (let y = -36 + (road.lineOffset % 56); y < canvas.height; y += 56) {
+          drawMiniBeadLine(lx, y);
+        }
+      }
+
+      drawTinyCloud(20, 42, 28, 18, '#9edfff');
+      drawTinyStar(canvas.width - 34, 72, '#ffd84d');
+      drawTinyPlus(38, canvas.height - 84, 10, '#ff5577');
+      drawTinyPlus(canvas.width - 42, canvas.height - 126, 10, '#a6df4d');
+    }
+
+    function drawPegboardArea(x, y, w, h) {
+      ctx.fillStyle = '#fdfdff';
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = '#d9d9e6';
+      for (let iy = y + 8; iy < y + h; iy += 14) {
+        for (let ix = x + 8; ix < x + w; ix += 14) {
+          ctx.beginPath();
+          ctx.arc(ix, iy, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    function drawMiniBeadLine(x, y) {
+      ctx.fillStyle = '#fff';
+      for (let i = 0; i < 4; i += 1) {
+        ctx.beginPath();
+        ctx.arc(x + 3, y + i * 10 + 4, 3.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawTinyCloud(x, y, w, h, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(x + 6, y + 8, w - 12, h - 8);
+      ctx.fillRect(x + 10, y + 4, w - 20, h - 6);
+    }
+
+    function drawTinyStar(cx, cy, color) {
+      ctx.fillStyle = color;
+      for (let i = -1; i <= 1; i += 1) {
+        ctx.fillRect(cx - 3, cy + i * 6, 6, 6);
+        ctx.fillRect(cx + i * 6, cy - 3, 6, 6);
+      }
+      ctx.fillRect(cx - 6, cy - 6, 12, 12);
+    }
+
+    function drawTinyPlus(cx, cy, s, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(cx - s / 2, cy - s * 1.5, s, s * 3);
+      ctx.fillRect(cx - s * 1.5, cy - s / 2, s * 3, s);
+    }
+
+    function drawSprite(sprite, palette, sx, sy, px) {
+      for (let row = 0; row < sprite.length; row += 1) {
+        const line = sprite[row];
+        for (let col = 0; col < line.length; col += 1) {
+          const key = line[col];
+          if (key === '.') continue;
+          const color = palette[key];
+          if (!color) continue;
+          ctx.fillStyle = color;
+          ctx.fillRect(sx + col * px, sy + row * px, px, px);
+        }
+      }
+    }
+
+    function drawObstacle(obs) {
+      if (obs.type === 'cloud') return drawObstacleCloud(obs.x, obs.y, obs.width, obs.height);
+      if (obs.type === 'star') return drawObstacleStar(obs.x, obs.y, obs.width, obs.height);
+      return drawObstaclePegboard(obs.x, obs.y, obs.width, obs.height);
+    }
+
+    function drawObstacleCloud(x, y, width, height) {
+      const px = Math.max(2, Math.floor(width / 14));
+      const sx = x + Math.floor((width - px * 14) / 2);
+      const sy = y + Math.floor((height - px * 9) / 2);
+      const palette = { A: '#1174b8', B: '#7fd9ff', C: '#dff8ff' };
+      const sprite = [
+        '....AAA.......',
+        '..AABBBBAAA...',
+        '.AABBBBBBBBAA.',
+        'AABBBBBBBBBBBA',
+        'AABBBBBBBBBBBA',
+        '.ABBBBBBBBBBA.',
+        '..AABBBBBBAA..',
+        '....AAAAAA....',
+        '..............'
+      ];
+      drawSprite(sprite, palette, sx, sy, px);
+    }
+
+    function drawObstacleStar(x, y, width, height) {
+      const px = Math.max(2, Math.floor(width / 11));
+      const sx = x + Math.floor((width - px * 11) / 2);
+      const sy = y + Math.floor((height - px * 10) / 2);
+      const palette = { A: '#d98b00', B: '#ffd53a', C: '#fff2a8' };
+      const sprite = [
+        '.....A.....',
+        '....ABA....',
+        '....BBB....',
+        '.AABBBBAA..',
+        '..ABBBBBA..',
+        '..AABCBBAA.',
+        '...ABBBBA..',
+        '..AABABAA..',
+        '..AA...AA..',
+        '...........'
+      ];
+      drawSprite(sprite, palette, sx, sy, px);
+    }
+
+    function drawObstaclePegboard(x, y, width, height) {
+      ctx.fillStyle = '#f7f7fb';
+      ctx.fillRect(x, y, width, height);
+      ctx.strokeStyle = '#bdbdc8';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x + 1, y + 1, width - 2, height - 2);
+      ctx.fillStyle = '#c8c8d4';
+      for (let iy = y + 7; iy < y + height - 4; iy += 9) {
+        for (let ix = x + 7; ix < x + width - 4; ix += 9) {
+          ctx.beginPath();
+          ctx.arc(ix, iy, 1.7, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.fillStyle = '#bfe55b';
+      for (let iy = 0; iy < 3; iy += 1) {
+        for (let ix = 0; ix < 3; ix += 1) {
+          ctx.beginPath();
+          ctx.arc(x + 18 + ix * 9, y + 18 + iy * 9, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    function drawMascot(x, y, width, height) {
+      const px = Math.max(2, Math.floor(width / 16));
+      const sx = x + Math.floor((width - px * 16) / 2);
+      const sy = y + Math.floor((height - px * 18) / 2);
+      const palette = {
+        A: '#000000',
+        B: '#f7dbe5',
+        C: '#f6c7d7',
+        D: '#f19bc0',
+        E: '#ec4d95',
+        F: '#f79a8a',
+        G: '#fff7ea',
+        H: '#f4dccf',
+        I: '#ffffff'
+      };
+      const sprite = [
+        '....AA....AA....',
+        '...ADDA..ADDA...',
+        '..ADBBBDBBBDAA..',
+        '..ABBBBBBBBBBBA.',
+        '.ABBBBBBBBBBBBBA',
+        '.ABBI......IBBBA',
+        '.ABBIA....AIBBBA',
+        '.ABBIA....AIBBBA',
+        '.ABBI..AA..IBBA.',
+        '.ABBBBBBBBBBBBA.',
+        '..ABBGGGGGGBBBA.',
+        '..ABBGGGGGGBBBA.',
+        '..ABEFFHHFFEBBA.',
+        '...AEEEEEEEEA...',
+        '..AEEEEE.EEEEA..',
+        '..AEEE....EEEA..',
+        '...AA......AA...',
+        '................'
+      ];
+      drawSprite(sprite, palette, sx, sy, px);
+    }
+
+    function drawSparkle(s) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, s.life / s.maxLife);
+      if (s.text) {
+        ctx.fillStyle = s.color;
+        ctx.font = 'bold 20px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(s.text, s.x, s.y);
+      } else {
+        ctx.translate(s.x, s.y);
+        ctx.rotate(s.rotation);
+        ctx.fillStyle = s.color;
+        ctx.fillRect(-s.size / 2, -2, s.size, 4);
+        ctx.fillRect(-2, -s.size / 2, 4, s.size);
+      }
+      ctx.restore();
+    }
+
+    function spawnStarSparkles(star) {
+      const colors = ['#fff7a8', '#ffd84d', '#ffffff', '#ffe680'];
+      for (let i = 0; i < 10; i += 1) {
+        sparkles.push({
+          x: star.x + star.width / 2 + (Math.random() * 14 - 7),
+          y: star.y + star.height / 2 + (Math.random() * 14 - 7),
+          vx: Math.cos((Math.PI * 2 * i) / 10) * (1.2 + Math.random() * 1.8),
+          vy: Math.sin((Math.PI * 2 * i) / 10) * (1.2 + Math.random() * 1.8),
+          size: 8 + Math.random() * 6,
+          life: 18,
+          maxLife: 18,
+          rotation: Math.random() * Math.PI,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          text: ''
+        });
+      }
+      sparkles.push({
+        x: star.x + star.width / 2,
+        y: star.y,
+        vx: 0,
+        vy: -0.8,
+        size: 0,
+        life: 28,
+        maxLife: 28,
+        rotation: 0,
+        color: '#ffcc33',
+        text: combo > 1 ? `+${2 + combo}  COMBO x${combo}` : '+3'
+      });
+    }
+
+    function spawnExplosion(x, y) {
+      const colors = ['#ffef9a', '#ffb347', '#ff7a45', '#ff3b30', '#ffffff'];
+      for (let i = 0; i < 24; i += 1) {
+        const angle = (Math.PI * 2 * i) / 24 + Math.random() * 0.18;
+        const speed = 1.8 + Math.random() * 3.2;
+        sparkles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size: 8 + Math.random() * 10,
+          life: 26 + Math.floor(Math.random() * 10),
+          maxLife: 34,
+          rotation: Math.random() * Math.PI,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          text: ''
+        });
+      }
+      sparkles.push({
+        x,
+        y,
+        vx: 0,
+        vy: -0.4,
+        size: 0,
+        life: 20,
+        maxLife: 20,
+        rotation: 0,
+        color: '#ffffff',
+        text: 'BOOM!'
+      });
+    }
+
+    function updateSparkles() {
+      for (let i = sparkles.length - 1; i >= 0; i -= 1) {
+        const s = sparkles[i];
+        s.x += s.vx;
+        s.y += s.vy;
+        s.vx *= 0.98;
+        s.vy *= 0.98;
+        s.rotation += 0.08;
+        s.life -= 1;
+        if (s.life <= 0) sparkles.splice(i, 1);
+      }
+    }
+
+    function draw() {
+      drawBackground();
+      for (const obs of obstacles) drawObstacle(obs);
+      for (const sparkle of sparkles) drawSparkle(sparkle);
+      drawMascot(player.x, player.y, player.width, player.height);
+    }
+
+    function collide(a, b) {
+      return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+    }
+
+    function starCollide(a, b) {
+      const paddingX = 10;
+      const paddingY = 8;
+      return (
+        a.x + paddingX < b.x + b.width &&
+        a.x + a.width - paddingX > b.x &&
+        a.y + paddingY < b.y + b.height &&
+        a.y + a.height - paddingY > b.y
+      );
+    }
+
+    function ensureAudio() {
+      if (!audioCtx) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return null;
+        audioCtx = new Ctx();
+      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    function playTone(freq, duration, type = 'sine', volume = 0.03, when = 0) {
+      const a = ensureAudio();
+      if (!a) return;
+      const osc = a.createOscillator();
+      const gain = a.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, a.currentTime + when);
+      gain.gain.setValueAtTime(0.0001, a.currentTime + when);
+      gain.gain.exponentialRampToValueAtTime(volume, a.currentTime + when + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + when + duration);
+      osc.connect(gain);
+      gain.connect(a.destination);
+      osc.start(a.currentTime + when);
+      osc.stop(a.currentTime + when + duration + 0.02);
+    }
+
+    function startBgm() {
+      if (bgmStarted) return;
+      bgmStarted = true;
+      const loop = () => {
+        if (!playing) {
+          bgmStarted = false;
+          return;
+        }
+        playTone(220, 0.22, 'sine', 0.018, 0);
+        playTone(277, 0.18, 'triangle', 0.012, 0.24);
+        playTone(330, 0.22, 'sine', 0.016, 0.48);
+        playTone(277, 0.18, 'triangle', 0.012, 0.76);
+        setTimeout(loop, 1000);
+      };
+      loop();
+    }
+
+    function playStarSound(currentCombo) {
+      const boost = Math.min(currentCombo, 6);
+      playTone(740 + boost * 20, 0.08, 'triangle', 0.05, 0);
+      playTone(980 + boost * 25, 0.12, 'sine', 0.04, 0.06);
+      playTone(1320 + boost * 30, 0.16, 'triangle', 0.03, 0.14);
+    }
+
+    function playCrashSound() {
+      playTone(160, 0.12, 'sawtooth', 0.05, 0);
+      playTone(100, 0.2, 'square', 0.03, 0.04);
+    }
+
+    function endGame() {
+      playing = false;
+      combo = 0;
+      comboTimer = 0;
+      spawnExplosion(player.x + player.width / 2, player.y + player.height / 2);
+      playCrashSound();
+      cancelAnimationFrame(animationId);
+      if (score > bestScore) {
+        bestScore = score;
+        localStorage.setItem('racing_best', String(bestScore));
+      }
+      updateLeaderboard(score);
+      updateHud();
+      updateSparkles();
+      draw();
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 34px Arial';
+      ctx.fillText('遊戲結束', canvas.width / 2, canvas.height / 2 - 20);
+      ctx.font = '22px Arial';
+      ctx.fillText(`分數：${score}`, canvas.width / 2, canvas.height / 2 + 20);
+      ctx.font = '18px Arial';
+      ctx.fillText('按「開始 / 重新開始」再玩一次', canvas.width / 2, canvas.height / 2 + 60);
+    }
+
+    function update() {
+      if (!playing) return;
+      updateSparkles();
+
+      if (comboTimer > 0) {
+        comboTimer -= 1;
+        if (comboTimer <= 0 && combo !== 0) {
+          combo = 0;
+          updateHud();
+        }
+      }
+
+      if (leftPressed) player.x -= player.speed;
+      if (rightPressed) player.x += player.speed;
+
+      const minX = road.x + 8;
+      const maxX = road.x + road.width - player.width - 8;
+      player.x = Math.max(minX, Math.min(maxX, player.x));
+
+      spawnTimer += 1;
+      const spawnRate = Math.max(28, 62 - speedLevel * 3);
+      if (spawnTimer >= spawnRate) {
+        spawnTimer = 0;
+        obstacles.push(randomObstacle());
+      }
+
+      for (let i = obstacles.length - 1; i >= 0; i -= 1) {
+        const obs = obstacles[i];
+        obs.y += gameSpeed;
+
+        if (obs.type === 'star') {
+          if (starCollide(player, obs)) {
+            combo += 1;
+            comboTimer = 90;
+            if (combo > maxComboThisRun) maxComboThisRun = combo;
+            const starPoints = 2 + combo;
+            playStarSound(combo);
+            spawnStarSparkles(obs);
+            obstacles.splice(i, 1);
+            score += starPoints;
+            if (score % 5 === 0) {
+              speedLevel += 1;
+              gameSpeed += 0.35;
+            }
+            updateHud();
+            continue;
+          }
+        } else if (collide(player, obs)) {
+          endGame();
+          return;
+        }
+
+        if (obs.y > canvas.height) {
+          obstacles.splice(i, 1);
+          if (obs.type !== 'star') {
+            score += 1;
+            if (score % 5 === 0) {
+              speedLevel += 1;
+              gameSpeed += 0.35;
+            }
+            updateHud();
+          }
+        }
+      }
+
+      draw();
+      animationId = requestAnimationFrame(update);
+    }
+
+    function startGame() {
+      hideRankModal();
+      resetGame();
+      updateResultPanel('遊戲進行中，快去吃星星衝高分！');
+      ensureAudio();
+      playing = true;
+      cancelAnimationFrame(animationId);
+      animationId = requestAnimationFrame(update);
+      startBgm();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      const key = e.key.toLowerCase();
+      if (e.key === 'ArrowLeft' || key === 'a') leftPressed = true;
+      if (e.key === 'ArrowRight' || key === 'd') rightPressed = true;
+      if (e.key === 'Enter' && !playing) startGame();
+    });
+
+    document.addEventListener('keyup', (e) => {
+      const key = e.key.toLowerCase();
+      if (e.key === 'ArrowLeft' || key === 'a') leftPressed = false;
+      if (e.key === 'ArrowRight' || key === 'd') rightPressed = false;
+    });
+
+    canvas.addEventListener('pointerdown', (e) => {
+      ensureAudio();
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      if (x < rect.width / 2) player.x -= 50;
+      else player.x += 50;
+    });
+
+    startBtn.addEventListener('click', startGame);
+    closeModalBtn.addEventListener('click', hideRankModal);
+    rankModal.addEventListener('click', (e) => {
+      if (e.target === rankModal) hideRankModal();
+    });
+    playerNameInput.addEventListener('input', () => {
+      currentPlayerName = playerNameInput.value.trim().slice(0, 12);
+      localStorage.setItem('racing_player_name', currentPlayerName);
+    });
+
+    function runSelfTests() {
+      console.assert(laneX(0, 54) < laneX(1, 54), 'laneX 應該隨車道往右增加');
+      console.assert(laneX(1, 54) < laneX(2, 54), '第三車道應在第二車道右邊');
+      const obstacle = randomObstacle();
+      console.assert(['cloud', 'star', 'pegboard'].includes(obstacle.type), '障礙物類型應有效');
+      console.assert(obstacle.y < 0, '障礙物初始位置應在畫面上方');
+      console.assert(collide({ x: 0, y: 0, width: 10, height: 10 }, { x: 5, y: 5, width: 10, height: 10 }) === true, '重疊應碰撞');
+      console.assert(collide({ x: 0, y: 0, width: 10, height: 10 }, { x: 20, y: 20, width: 10, height: 10 }) === false, '分離不應碰撞');
+      console.assert(starCollide({ x: 100, y: 100, width: 60, height: 70 }, { x: 120, y: 120, width: 30, height: 30 }) === true, '星星重疊應可吃到');
+      console.assert(starCollide({ x: 100, y: 100, width: 60, height: 70 }, { x: 200, y: 200, width: 30, height: 30 }) === false, '遠離星星不應加分');
+      combo = 3;
+      spawnStarSparkles({ x: 100, y: 100, width: 30, height: 30 });
+      console.assert(sparkles.length > 0, '吃到星星後應產生閃光特效');
+      console.assert(sparkles.some((s) => s.text && s.text.includes('COMBO')), '連續吃星星時應顯示 combo 文字');
+      sparkles = [];
+      spawnExplosion(120, 120);
+      console.assert(sparkles.length > 0, '碰撞後應產生爆炸特效');
+      console.assert(sparkles.some((s) => s.text === 'BOOM!'), '爆炸時應顯示 BOOM 文字');
+      sparkles = [];
+      leaderboard = [];
+      updateLeaderboard(12);
+      updateLeaderboard(8);
+      updateLeaderboard(20);
+      console.assert(leaderboard[0].score === 20, '排行榜應依分數由高到低排序');
+      console.assert(leaderboard.length === 3, '排行榜應新增紀錄');
+      console.assert(getRankLabel(0) === '🥇', '第一名應顯示金牌');
+      console.assert(getRankClass(1) === 'silver', '第二名應為銀牌樣式');
+      console.assert(typeof hasFirebaseConfig() === 'boolean', 'Firebase 設定檢查應回傳布林值');
+      leaderboard = [];
+      saveLeaderboard();
+      renderLeaderboard();
+      combo = 0;
+    }
+
+    playerNameInput.value = currentPlayerName;
+    bestEl.textContent = String(bestScore);
+    runSelfTests();
+    renderLeaderboard();
+    initRealtimeLeaderboard();
+    resetGame();
+    updateResultPanel('按下開始，挑戰排行榜第一名');
+    draw();
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 30px Arial';
+    ctx.fillText('按下開始', canvas.width / 2, canvas.height / 2 - 10);
+    ctx.font = '18px Arial';
+    ctx.fillText('左右移動，吃星星加分，閃避其他障礙', canvas.width / 2, canvas.height / 2 + 24);
+  </script>
+</body>
+</html>
